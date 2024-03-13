@@ -1,41 +1,36 @@
-import time
-import json
-import requests
 from src.DBManager import DBManager
 
+print('''Привет! 
+Эта программа создает базу данных Postgresql
+с краткой информацией о вакансиях и компаниях, полученной при помощи API hh.ru.
+Для продолжения работы введите номер интересующего запроса\n\n''')
 
-params = {
-    'employer_id': [6, 13, 15, 1740],
-    'area': 113,         # Поиск в зоне
-    'per_page': 100       # Кол-во вакансий на 1 странице
-}
-req = requests.get('https://api.hh.ru/vacancies', params)
-data = req.content.decode()
-req.close()
-data = json.loads(data)['items']
-#print(data)
-for i in data:
-    try:
-        print([i['name'], i['employer']['name'], i['apply_alternate_url']])
-    except:
-        print([i['name'], i['employer']['name'], '=============================================================='])
+req = int(input('''1 - создать базу данных с заполнением данными с сайта hh.ru
+2 - получить среднюю зарплату по полученным вакансиям
+3 - получить вакансию с самой высокой зарплатой
+4 - найти вакансии с ключевым словом в названии
+5 - выйти\n'''))
 
-man = DBManager()
-print(man.get_companies_and_vacancies_count())
-
-
-# create table employers(
-# 	id int unique,
-# 	company_name varchar,
-# 	open_vacancies int,
-# 	title varchar,
-# 	notes text,
-# );
-#
-# create table vacancies(
-# 	id int unique,
-# 	vacancy_name varchar,
-# 	salary int,
-# 	city varchar,
-# 	description text,
-# );
+while True:
+    d = DBManager()
+    if req == 1:
+        d.create_tables()
+        d.to_postgresql("employers", d.get_companies_and_vacancies_count)
+        d.get_all_vacancies()
+        d.to_postgresql('vacancies', d.vacancies)
+        break
+    elif req == 2:
+        d.get_avg_salary()
+        break
+    elif req == 3:
+        d.get_vacancies_with_higher_salary()
+        break
+    elif req == 4:
+        key_word = input('\n\nВведите ключевое слово: ')
+        d.get_vacancies_with_keyword(key_word)
+        break
+    elif req == 5:
+        break
+    else:
+        print('\n\nВведен некорректный номер запроса, попробуй еще раз... ')
+        req = int(input())
