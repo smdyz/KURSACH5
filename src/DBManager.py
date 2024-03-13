@@ -4,9 +4,24 @@ import requests
 
 
 class DBManager:
-    '''
-    Класс DBManager
-    '''
+    """
+    Класс DBManager создан для получения данных о компаниях и вакансиях с сайта hh.ru посредством API ключа.
+    В нем реализована централизованное хранение request'ов в базе данных Postgresql.
+
+    Переменные:
+    self.vacancies - список вакансий, включающий ее наименование, ссылку, зарплату и id работодателя
+    self.employers - список компаний (работодателей), включающий его id, название и количество открытых вакансий
+
+    Методы:
+    create_tables - создание 2 таблиц для работодателей и вакансий
+    to_postgresql - заполнение таблиц полученными данными
+    get_companies_and_vacancies_count - получение по API краткой информации о компаниях
+    get_all_vacancies - получение по API краткой информации о вакансиях
+    get_avg_salary - расчет средней зарплаты
+    get_vacancies_with_higher_salary - вывод самой высокой зарплаты
+    get_vacancies_with_keyword - поиск по ключевому слову
+    """
+
     def __init__(self):
         self.vacancies = []
         self.employers = []
@@ -22,8 +37,8 @@ class DBManager:
         try:
             with connection:
                 with connection.cursor() as cur:
-                    cur.execute('''drop table vacancies;
-                                drop table employers;
+                    cur.execute('''drop table if exists vacancies;
+                                drop table if exists employers;
                                 create table vacancies (
                                     vac_name varchar NOT NULL,
                                     url varchar NOT NULL,
