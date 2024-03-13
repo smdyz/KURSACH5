@@ -1,5 +1,4 @@
 import psycopg2
-import classes
 import json
 import requests
 
