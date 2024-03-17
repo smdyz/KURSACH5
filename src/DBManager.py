@@ -22,16 +22,21 @@ class DBManager:
     get_vacancies_with_keyword - поиск по ключевому слову
     """
 
-    def __init__(self):
+    def __init__(self, db: str, user: str, pswd: str, port=5432):
         self.vacancies = []
         self.employers = []
+        self.db = db
+        self.user = user
+        self.pswd = pswd
+        if isinstance(port, int):
+            self.port = port
 
-    @staticmethod
-    def create_tables():
+    def create_tables(self):
         connection = psycopg2.connect(
-            database='KURSACH5',
-            user='postgres',
-            password='Qw1'
+            database=self.db,
+            user=self.user,
+            password=self.pswd,
+            port=self.port
         )
 
         try:
@@ -54,12 +59,12 @@ class DBManager:
         finally:
             connection.close()
 
-    @staticmethod
-    def to_postgresql(tab_name: str, tab: list):
+    def to_postgresql(self, tab_name: str, tab: list):
         connection = psycopg2.connect(
-            database='KURSACH5',
-            user='postgres',
-            password='Qw1'
+            database=self.db,
+            user=self.user,
+            password=self.pswd,
+            port=self.port
         )
 
         try:
@@ -123,19 +128,21 @@ class DBManager:
             for i in data:
                 try:
                     if i['salary']['from'] is None:
-                        self.vacancies.append([i['name'], i['apply_alternate_url'], i['salary']['to'], i['employer']['id']])
+                        self.vacancies.append(
+                            [i['name'], i['apply_alternate_url'], i['salary']['to'], i['employer']['id']])
                     else:
-                        self.vacancies.append([i['name'], i['apply_alternate_url'], i['salary']['from'], i['employer']['id']])
+                        self.vacancies.append(
+                            [i['name'], i['apply_alternate_url'], i['salary']['from'], i['employer']['id']])
                 except:
                     self.vacancies.append([i['name'], i['apply_alternate_url'], i['salary'], i['employer']['id']])
         return self.vacancies
 
-    @staticmethod
-    def get_avg_salary():
+    def get_avg_salary(self):
         connection = psycopg2.connect(
-            database='KURSACH5',
-            user='postgres',
-            password='Qw1'
+            database=self.db,
+            user=self.user,
+            password=self.pswd,
+            port=self.port
         )
 
         try:
@@ -149,12 +156,12 @@ class DBManager:
         finally:
             connection.close()
 
-    @staticmethod
-    def get_vacancies_with_higher_salary():
+    def get_vacancies_with_higher_salary(self):
         connection = psycopg2.connect(
-            database='KURSACH5',
-            user='postgres',
-            password='Qw1'
+            database=self.db,
+            user=self.user,
+            password=self.pswd,
+            port=self.port
         )
 
         try:
@@ -167,12 +174,12 @@ class DBManager:
         finally:
             connection.close()
 
-    @staticmethod
-    def get_vacancies_with_keyword(key_word):
+    def get_vacancies_with_keyword(self, key_word):
         connection = psycopg2.connect(
-            database='KURSACH5',
-            user='postgres',
-            password='Qw1'
+            database=self.db,
+            user=self.user,
+            password=self.pswd,
+            port=self.port
         )
 
         try:
@@ -184,4 +191,3 @@ class DBManager:
                         print(row)
         finally:
             connection.close()
-
