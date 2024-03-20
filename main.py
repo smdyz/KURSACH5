@@ -3,48 +3,41 @@ from src.DBManager import DBManager
 print('''Привет! 
 Эта программа создает базу данных Postgresql
 с краткой информацией о вакансиях и компаниях, полученной при помощи API hh.ru.
-Для продолжения работы введите номер интересующего запроса\n\n''')
+Для продолжения работы введите номер интересующего запроса\n''')
+
+d = DBManager()
+d.bd_data()
+
+if d.check() is True:
+    print('Создаем базу данных подождите немного...\n')
+    d.create_tables()
+    d.get_companies_and_vacancies_count()
+    d.get_all_vacancies()
+    d.to_postgresql('employers')
+    d.to_postgresql('vacancies')
 
 try:
-    with open('bd.txt', mode='r') as f:
-        con = f.read()
-        con = con.split('  ')
-        if len(con) == 4:
-            con[3] = int(con[3])
-            d = DBManager(con[0], con[1], con[2], con[3])
-        elif len(con) == 3:
-            d = DBManager(con[0], con[1], con[2])
-except:
-    print("нт")
-
-try:
-    print('''1 - создать базу данных с заполнением данными с сайта hh.ru
-2 - получить среднюю зарплату по полученным вакансиям
-3 - получить вакансии с зарплатой выше средней
-4 - найти вакансии с ключевым словом в названии
-5 - ввести свои данные для подключения к БД (обязательно для первого подключения)
-6 - вывести все компании
-7 - вывести все вакансии, предоставляемые полученными работодателями 
-8 - выйти\n''')
+    print('''    1 - получить среднюю зарплату по полученным вакансиям
+    2 - получить вакансии с зарплатой выше средней
+    3 - найти вакансии с ключевым словом в названии
+    4 - ввести свои данные для подключения к БД (обязательно для первого подключения)
+    5 - вывести все компании
+    6 - вывести все вакансии, предоставляемые полученными работодателями 
+    7 - выйти\n''')
 
     while True:
         req = int(input())
         if req == 1:
-            d.create_tables()
-            d.to_postgresql("employers", d.get_companies_and_vacancies_count())
-            d.get_all_vacancies()
-            d.to_postgresql('vacancies', d.vacancies)
-        elif req == 2:
             d.get_avg_salary()
-        elif req == 3:
+        elif req == 2:
             d.get_vacancies_with_higher_salary()
-        elif req == 4:
+        elif req == 3:
             try:
                 key_word = input('\nВведите ключевое слово: ')
                 d.get_vacancies_with_keyword(key_word)
             except:
                 print('\nВакансии не найдены')
-        elif req == 5:
+        elif req == 4:
             con = input(
                 '\n\nДля подключения к вашей базе данных необходимо вести ее данные в одну строку через 2 пробела.\n'
                 'Не бойтесь они нигде не сохраняются... наверное:)\n'
@@ -52,13 +45,14 @@ try:
                 ' ПОСЛЕДОВАТЕЛЬНОСТЬ\n')
             with open('bd.txt', mode='w') as f:
                 f.write(con)
-        elif req == 6:
+            print('Для внесения изменений перезапустите программу')
+        elif req == 5:
             d.get_companies_and_vacancies_count()
             d.print_employers()
-        elif req == 7:
+        elif req == 6:
             d.get_all_vacancies()
             d.print_vacancies()
-        elif req == 8:
+        elif req == 7:
             print('Завершение работы')
             break
         else:

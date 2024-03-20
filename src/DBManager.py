@@ -1,89 +1,73 @@
-from abc import abstractmethod, ABC
 import psycopg2
 import json
 import requests
 
 
-class API:
-    """Абстрактный класс для работы с API"""
+# class GET_API:
+#     """
+#     Класс для работы с API
+#
+#     Переменные:
+#     self.vacancies - список вакансий, включающий ее наименование, ссылку, зарплату и id работодателя
+#     self.employers - список компаний (работодателей), включающий его id, название и количество открытых вакансий
+#
+#     Методы:
+#     get_companies_and_vacancies_count - получение по API краткой информации о компаниях
+#     get_all_vacancies - получение по API краткой информации о вакансиях
+#     """
+#
+#     def __init__(self):
+#         self.vacancies = []
+#         self.employers = []
 
-    @abstractmethod
-    def get_all_vacancies(self):
-        pass
 
-    @abstractmethod
-    def get_companies_and_vacancies_count(self):
-        pass
-
-
-class DBManager(API):
+class DBManager():
     """
     Класс DBManager создан для получения данных о компаниях и вакансиях с сайта hh.ru посредством API ключа.
     В нем реализована централизованное хранение request'ов в базе данных Postgresql.
 
-    Переменные:
-    self.vacancies - список вакансий, включающий ее наименование, ссылку, зарплату и id работодателя
-    self.employers - список компаний (работодателей), включающий его id, название и количество открытых вакансий
-
     Методы:
     create_tables - создание 2 таблиц для работодателей и вакансий
     to_postgresql - заполнение таблиц полученными данными
-    get_companies_and_vacancies_count - получение по API краткой информации о компаниях
-    get_all_vacancies - получение по API краткой информации о вакансиях
     get_avg_salary - расчет средней зарплаты
     get_vacancies_with_higher_salary - вывод самой высокой зарплаты
     get_vacancies_with_keyword - поиск по ключевому слову
     """
 
-    def __init__(self, db: str, user: str, pswd: str, port=5432):
+    def __init__(self):
         self.vacancies = []
         self.employers = []
-        self.db = db
-        self.user = user
-        self.pswd = pswd
-        if isinstance(port, int):
-            self.port = port
-        self.connection = psycopg2.connect(
+        self.db = ''
+        self.user = ''
+        self.pswd = ''
+        self.port = 5432
+
+    @property
+    def con(self):
+        connection = psycopg2.connect(
             database=self.db,
             user=self.user,
             password=self.pswd,
             port=self.port
         )
+        return connection
 
-    def create_tables(self):
+    def bd_data(self):
         try:
-            with self.connection:
-                with self.connection.cursor() as cur:
-                    cur.execute('''drop table if exists vacancies;
-                                drop table if exists employers;
-                                create table vacancies (
-                                    vac_name varchar NOT NULL,
-                                    url varchar NOT NULL,
-                                    salary int,
-                                    emp_id int
-                                );
-                                
-                                create table employers (
-                                    emp_id int unique NOT NULL,
-                                    emp_name varchar NOT NULL,
-                                    emp_open_vac int
-                                );''')
-        finally:
-            self.connection.close()
-
-    def to_postgresql(self, tab_name: str, tab: list):
-        try:
-            with self.connection:
-                with self.connection.cursor() as cur:
-                    for tabs_info in tab:
-                        if len(tabs_info) == 3:
-                            cur.execute(f'insert into {tab_name} values (%s, %s, %s)',
-                                        (tabs_info[0], tabs_info[1], tabs_info[2]))
-                        if len(tabs_info) == 4:
-                            cur.execute(f'insert into {tab_name} values (%s, %s, %s, %s)',
-                                        (tabs_info[0], tabs_info[1], tabs_info[2], tabs_info[3]))
-        finally:
-            self.connection.close()
+            with open('bd.txt', mode='r') as f:
+                data = f.read()
+                data = data.split('  ')
+                if len(data) == 4:
+                    self.db = data[0]
+                    self.user = data[1]
+                    self.pswd = data[2]
+                    self.port = data[3]
+                elif len(data) == 3:
+                    self.db = data[0]
+                    self.user = data[1]
+                    self.pswd = data[2]
+        except:
+            print("нт")
 
     def get_companies_and_vacancies_count(self):
         i = 1
@@ -150,22 +134,82 @@ class DBManager(API):
 Зарплата - {i[2]}
 id работодателя - {i[3]}\n''')
 
-    def get_avg_salary(self):
+    def create_tables(self):
+        connection = psycopg2.connect(
+            database=self.db,
+            user=self.user,
+            password=self.pswd,
+            port=self.port
+        )
         try:
-            with self.connection:
-                with self.connection.cursor() as cur:
+            with connection:
+                with connection.cursor() as cur:
+                    cur.execute('''drop table if exists vacancies;
+                                drop table if exists employers;
+                                create table vacancies (
+                                    vac_name varchar NOT NULL,
+                                    url varchar NOT NULL,
+                                    salary int,
+                                    emp_id int
+                                );
+                                
+                                create table employers (
+                                    emp_id int unique NOT NULL,
+                                    emp_name varchar NOT NULL,
+                                    emp_open_vac int
+                                );''')
+        finally:
+            connection.close()
+
+    def to_postgresql(self, tab_name):
+        # try:
+        connection = psycopg2.connect(
+            database=self.db,
+            user=self.user,
+            password=self.pswd,
+            port=self.port
+        )
+        with connection:
+            with connection.cursor() as cur:
+                if tab_name == 'vacancies':
+                    for tabs_info in self.vacancies:
+                        cur.execute(f'insert into {tab_name} values (%s, %s, %s, %s)',
+                                        (tabs_info[0], tabs_info[1], tabs_info[2], tabs_info[3]))
+                elif tab_name == 'employers':
+                    for tabs_info in self.employers:
+                        cur.execute(f'insert into {tab_name} values (%s, %s, %s)',
+                                        (tabs_info[0], tabs_info[1], tabs_info[2]))
+        # finally:
+        connection.close()
+
+    def get_avg_salary(self):
+        connection = psycopg2.connect(
+            database=self.db,
+            user=self.user,
+            password=self.pswd,
+            port=self.port
+        )
+        try:
+            with connection:
+                with connection.cursor() as cur:
                     cur.execute('select avg(salary) from vacancies;')
                     rows = cur.fetchall()
                     for row in rows:
-                        avg = float(str(row)[10:-4])
+                        avg = float(row[0])
                         print(round(avg, 2))
         finally:
-            self.connection.close()
+            connection.close()
 
     def get_vacancies_with_higher_salary(self):
+        connection = psycopg2.connect(
+            database=self.db,
+            user=self.user,
+            password=self.pswd,
+            port=self.port
+        )
         try:
-            with self.connection:
-                with self.connection.cursor() as cur:
+            with connection:
+                with connection.cursor() as cur:
                     cur.execute('SELECT vac_name, salary, url FROM vacancies WHERE salary > (SELECT AVG(salary) FROM '
                                 'vacancies);')
                     rows = cur.fetchall()
@@ -174,15 +218,34 @@ id работодателя - {i[3]}\n''')
 Зарплата - {row[1]}
 Ссылка - {row[2]}\n''')
         finally:
-            self.connection.close()
+            connection.close()
 
     def get_vacancies_with_keyword(self, key_word):
+        connection = psycopg2.connect(
+            database=self.db,
+            user=self.user,
+            password=self.pswd,
+            port=self.port
+        )
         try:
-            with self.connection:
-                with self.connection.cursor() as cur:
+            with connection:
+                with connection.cursor() as cur:
                     cur.execute("SELECT * FROM vacancies WHERE vac_name LIKE %s", (f'%{key_word}%',))
                     rows = cur.fetchall()
                     for row in rows:
                         print(row)
         finally:
-            self.connection.close()
+            connection.close()
+
+    def check(self):
+        try:
+            with self.con:
+                with self.con.cursor() as cur:
+                    cur.execute("SELECT * FROM vacancies")
+                    rows = cur.fetchall()
+                    if len(rows) == 0:
+                        return True
+                    else:
+                        return False
+        finally:
+            self.con.close()
