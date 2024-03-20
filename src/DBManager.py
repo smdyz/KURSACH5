@@ -1,9 +1,22 @@
+from abc import abstractmethod, ABC
 import psycopg2
 import json
 import requests
 
 
-class DBManager:
+class API:
+    """Абстрактный класс для работы с API"""
+
+    @abstractmethod
+    def get_all_vacancies(self):
+        pass
+
+    @abstractmethod
+    def get_companies_and_vacancies_count(self):
+        pass
+
+
+class DBManager(API):
     """
     Класс DBManager создан для получения данных о компаниях и вакансиях с сайта hh.ru посредством API ключа.
     В нем реализована централизованное хранение request'ов в базе данных Postgresql.
