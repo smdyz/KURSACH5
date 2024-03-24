@@ -1,54 +1,17 @@
 import psycopg2
 import json
 import requests
+from src import database
 
 
-class DBManager():
+class for_API:
     """
-    Класс DBManager создан для получения данных о компаниях и вакансиях с сайта hh.ru посредством API ключа.
-    В нем реализована централизованное хранение request'ов в базе данных Postgresql.
-
-    Методы:
-    create_tables - создание 2 таблиц для работодателей и вакансий
-    to_postgresql - заполнение таблиц полученными данными
-    get_avg_salary - расчет средней зарплаты
-    get_vacancies_with_higher_salary - вывод самой высокой зарплаты
-    get_vacancies_with_keyword - поиск по ключевому слову
+    Класс for_API создан для получения данных о компаниях и вакансиях с сайта hh.ru посредством API ключа.
     """
 
     def __init__(self):
         self.vacancies = []
         self.employers = []
-        self.db = ''
-        self.user = ''
-        self.pswd = ''
-        self.port = 5432
-        self.connect = None
-
-    def con(self):
-        self.connect = psycopg2.connect(
-            database=self.db,
-            user=self.user,
-            password=self.pswd,
-            port=self.port
-        )
-
-    def bd_data(self):
-        try:
-            with open('bd.txt', mode='r') as f:
-                data = f.read()
-                data = data.split('  ')
-                if len(data) == 4:
-                    self.db = data[0]
-                    self.user = data[1]
-                    self.pswd = data[2]
-                    self.port = data[3]
-                elif len(data) == 3:
-                    self.db = data[0]
-                    self.user = data[1]
-                    self.pswd = data[2]
-        except:
-            print("нт")
 
     def get_companies_and_vacancies_count(self):
         i = 1
@@ -76,12 +39,6 @@ class DBManager():
         self.employers.append([jo['id'], jo['name'], jo['open_vacancies']])
         return self.employers
 
-    def print_employers(self) -> None:
-        for i in self.employers:
-            print(f'''id - {i[0]}
-Название компании - {i[1]}
-Количество открытых вакансий - {i[2]}\n''')
-
     def get_all_vacancies(self):
         params = {
             'employer_id': [],
@@ -108,12 +65,35 @@ class DBManager():
                     self.vacancies.append([i['name'], i['apply_alternate_url'], i['salary'], i['employer']['id']])
         return self.vacancies
 
-    def print_vacancies(self) -> None:
-        for i in self.vacancies:
-            print(f'''Название вакансии - {i[0]}
-Ссылка - {i[1]}
-Зарплата - {i[2]}
-id работодателя - {i[3]}\n''')
+
+class DBManager(for_API):
+    """
+    Класс DBManager создан для работы с базой данных, основанной на данных, полученных с сайта hh.ru.
+    В нем реализована централизованное хранение request'ов в базе данных Postgresql.
+
+    Методы:
+    create_tables - создание 2 таблиц для работодателей и вакансий
+    to_postgresql - заполнение таблиц полученными данными
+    get_avg_salary - расчет средней зарплаты
+    get_vacancies_with_higher_salary - вывод самой высокой зарплаты
+    get_vacancies_with_keyword - поиск по ключевому слову
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.db = database.database
+        self.user = database.user
+        self.pswd = database.password
+        self.port = 5432
+        self.connect = None
+
+    def con(self):
+        self.connect = psycopg2.connect(
+            database=self.db,
+            user=self.user,
+            password=self.pswd,
+            port=self.port
+        )
 
     def create_tables(self):
         self.con()
@@ -145,11 +125,11 @@ id работодателя - {i[3]}\n''')
                 if tab_name == 'vacancies':
                     for tabs_info in self.vacancies:
                         cur.execute(f'insert into {tab_name} values (%s, %s, %s, %s)',
-                                        (tabs_info[0], tabs_info[1], tabs_info[2], tabs_info[3]))
+                                    (tabs_info[0], tabs_info[1], tabs_info[2], tabs_info[3]))
                 elif tab_name == 'employers':
                     for tabs_info in self.employers:
                         cur.execute(f'insert into {tab_name} values (%s, %s, %s)',
-                                        (tabs_info[0], tabs_info[1], tabs_info[2]))
+                                    (tabs_info[0], tabs_info[1], tabs_info[2]))
         # finally:
         self.connect.close()
 
@@ -194,15 +174,45 @@ id работодателя - {i[3]}\n''')
             self.connect.close()
 
     def check(self):
+        try:
+            self.con()
+            with self.connect:
+                with self.connect.cursor() as cur:
+                    cur.execute("SELECT * FROM vacancies")
+                    rows = cur.fetchall()
+                    if len(rows) > 0:
+                        return False
+                    return True
+        except:
+            return True
+        finally:
+            self.connect.close()
+
+    def print_employers(self) -> None:
+        self.con()
+        try:
+            with self.connect:
+                with self.connect.cursor() as cur:
+                    cur.execute("SELECT * FROM employers")
+                    rows = cur.fetchall()
+                    for row in rows:
+                        print(f'''id - {row[0]}
+Название компании - {row[1]}
+Количество открытых вакансий - {row[2]}\n''')
+        finally:
+            self.connect.close()
+
+    def print_vacancies(self) -> None:
         self.con()
         try:
             with self.connect:
                 with self.connect.cursor() as cur:
                     cur.execute("SELECT * FROM vacancies")
                     rows = cur.fetchall()
-                    if len(rows) == 0:
-                        return True
-                    else:
-                        return False
+                    for row in rows:
+                        print(f'''Название вакансии - {row[0]}
+Ссылка - {row[1]}
+Зарплата - {row[2]}
+id работодателя - {row[3]}\n''')
         finally:
             self.connect.close()
